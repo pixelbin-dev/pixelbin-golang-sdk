@@ -62,7 +62,7 @@ Generate a signed PixelBin url
 | --------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `url` (string)        | A valid Pixelbin URL to be signed                    | `https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg` |
 | `expirySeconds` (int) | Number of seconds the signed URL should be valid for | `20`                                                                                       |
-| `tokenID` (int)       | ID of the token used for signing                     | `42`                                                                                       |
+| `accessKey` (string)  | Access key of the token used for signing             | `a45e52d8-21ac-4a97-bd4f-eb5dd58602e0`                                                     |
 | `token` (string)      | Value of the token used for signing                  | `dummy-token`                                                                              |
 
 Example:
@@ -103,12 +103,12 @@ func main() {
     signedUrl := security.SignUrl(
         "https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg", // url
         30, // expirySeconds
-        22, // tokenId
+        "ab110791-db9f-4dca-ac39-d29db5941daa", // accessKey
         "dummy-token", // token
     )
 }
 // signedUrl
-// https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg?pbs=1aef31c1e0ecd8a875b1d3184f324327f4ab4bce419d81d1eb1a818ee5f2e3eb&pbe=1695705975&pbt=22
+// https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg?pbs=1aef31c1e0ecd8a875b1d3184f324327f4ab4bce419d81d1eb1a818ee5f2e3eb&pbe=1695705975&pbt=ab110791-db9f-4dca-ac39-d29db5941daa
 ```
 
 ## URL Utils
