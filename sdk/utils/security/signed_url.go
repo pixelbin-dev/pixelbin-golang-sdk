@@ -24,7 +24,7 @@ func generateSignature(urlPath string, expiryTimestamp int64, key string) string
 	return signature
 }
 
-func SignURL(urlString string, expirySeconds int, tokenID int, token string) (string, error) {
+func SignURL(urlString string, expirySeconds int, accessKey string, token string) (string, error) {
 	expiryTimestamp := time.Now().Unix() + int64(expirySeconds)
 
 	urlParts, err := url.Parse(urlString)
@@ -41,7 +41,7 @@ func SignURL(urlString string, expirySeconds int, tokenID int, token string) (st
 	urlQuery := urlParts.Query()
 	urlQuery.Set("pbs", signature)
 	urlQuery.Set("pbe", strconv.FormatInt(expiryTimestamp, 10))
-	urlQuery.Set("pbt", fmt.Sprintf("%v", tokenID))
+	urlQuery.Set("pbt", accessKey)
 	urlParts.RawQuery = urlQuery.Encode()
 
 	return urlParts.String(), nil

@@ -9,7 +9,7 @@ Getting started with Pixelbin Backend SDK for Golang
 ### Installation
 
 ```
-go get -u "github.com/pixelbin-dev/pixelbin-go/v2"
+go get -u "github.com/pixelbin-io/pixelbin-go/v3"
 ```
 
 ---
@@ -22,7 +22,7 @@ go get -u "github.com/pixelbin-dev/pixelbin-go/v2"
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/platform"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/platform"
 )
 
 func main() {
@@ -62,7 +62,7 @@ Generate a signed PixelBin url
 | --------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `url` (string)        | A valid Pixelbin URL to be signed                    | `https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg` |
 | `expirySeconds` (int) | Number of seconds the signed URL should be valid for | `20`                                                                                       |
-| `tokenID` (int)       | ID of the token used for signing                     | `42`                                                                                       |
+| `accessKey` (string)  | Access key of the token used for signing             | `a45e52d8-21ac-4a97-bd4f-eb5dd58602e0`                                                     |
 | `token` (string)      | Value of the token used for signing                  | `dummy-token`                                                                              |
 
 Example:
@@ -71,19 +71,23 @@ Example:
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/security"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/security"
 )
 
 func main() {
-    signedUrl := security.SignUrl(
-        "https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg", // url
-        20, // expiry_seconds
-        42, // token_id
+    signedUrl, err := security.SignURL(
+        "https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg", // urlString
+        20, // expirySeconds
+        "a45e52d8-21ac-4a97-bd4f-eb5dd58602e0", // accessKey
         "dummy-token", // token
     )
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Println(signedUrl)
 }
 // signed_url
-// https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg?pbs=8eb6a00af74e57967a42316e4de238aa88d92961649764fad1832c1bff101f25&pbe=1695635915&pbt=1
+// https://cdn.pixelbin.io/v2/dummy-cloudname/original/__playground/playground-default.jpeg?pbs=8eb6a00af74e57967a42316e4de238aa88d92961649764fad1832c1bff101f25&pbe=1695635915&pbt=a45e52d8-21ac-4a97-bd4f-eb5dd58602e0
 ```
 
 Usage with custom domain url
@@ -92,19 +96,19 @@ Usage with custom domain url
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/security"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/security"
 )
 
 func main() {
     signedUrl := security.SignUrl(
         "https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg", // url
         30, // expirySeconds
-        22, // tokenId
+        "ab110791-db9f-4dca-ac39-d29db5941daa", // accessKey
         "dummy-token", // token
     )
 }
 // signedUrl
-// https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg?pbs=1aef31c1e0ecd8a875b1d3184f324327f4ab4bce419d81d1eb1a818ee5f2e3eb&pbe=1695705975&pbt=22
+// https://krit.imagebin.io/v2/original/__playground/playground-default.jpeg?pbs=1aef31c1e0ecd8a875b1d3184f324327f4ab4bce419d81d1eb1a818ee5f2e3eb&pbe=1695705975&pbt=ab110791-db9f-4dca-ac39-d29db5941daa
 ```
 
 ## URL Utils
@@ -151,7 +155,7 @@ Example:
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 
 func main() {
@@ -198,7 +202,7 @@ Usage with custom domain
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 
 func main() {
@@ -244,7 +248,7 @@ Usage with URL Translation Worker
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 
 func main() {
@@ -287,7 +291,7 @@ Converts the extracted url obj to a Pixelbin url.
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 func main() {
     obj := map[string]interface{}{
@@ -323,7 +327,7 @@ Usage with custom domain
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 func main() {
     obj := map[string]interface{}{
@@ -360,7 +364,7 @@ Usage with URL Translation Worker
 import (
 	"fmt"
 	"os"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 func main() {
     obj := map[string]interface{}{
@@ -381,8 +385,8 @@ func main() {
 }
 // urlstring
 // https://cdn.pixelbin.io/v2/your-cloud-name/z-slug/wrkr/resize:h100,w:200/folder/image.jpeg
-
 ```
+
 ## Documentation
 
 -   [API docs](documentation/platform/README.md)

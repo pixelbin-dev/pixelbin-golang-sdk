@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/utils/url"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/utils/url"
 )
 
 var urls_to_obj = []struct {

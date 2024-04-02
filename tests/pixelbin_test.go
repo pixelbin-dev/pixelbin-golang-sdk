@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/platform"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/platform"
 )
 
 var settings = map[string]string{"domain": "https://api.testdomain.com", "apiSecret": "test-api-secret"}

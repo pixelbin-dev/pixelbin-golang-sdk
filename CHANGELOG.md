@@ -1,3 +1,10 @@
+# 3.0.0
+
+-   **Breaking Changes:**
+    -   Function signature of `SignURL` in `security` package has been updated. The argument `tokenID` has been replaced with `accessKey`. Access key for a token can be found by going to console.pixelbin.io > `Settings` > `Tokens` > Click on any Token > `Access Key`.
+    -   Package name has been updated to reflect the url where its located now
+        `github.com/pixelbin-dev/pixelbin-go` => `github.com/pixelbin-io/pixelbin-go`
+
 # 2.4.0
 
 -   Added method for generating v2 Signed Multipart Upload Urls `CreateSignedUrlV2`

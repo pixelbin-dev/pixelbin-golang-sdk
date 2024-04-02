@@ -3,7 +3,7 @@ package platform
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/common"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/common"
 	"os"
 )
 

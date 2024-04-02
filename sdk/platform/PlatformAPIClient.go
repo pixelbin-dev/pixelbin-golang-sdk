@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pixelbin-dev/pixelbin-go/v2/sdk/common"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/common"
 )
 
 // APIClient holds raw data for api execution

@@ -16,7 +16,7 @@ Image Transformation Service
 import (
     "fmt"
     "os"
-    "github.com/pixelbin-dev/pixelbin-go/v2/sdk/platform"
+    "github.com/pixelbin-io/pixelbin-go/v3/sdk/platform"
 )
 
 func main() {
