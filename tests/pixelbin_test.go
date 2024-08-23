@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -533,6 +534,64 @@ func TestGetTransformationContext(t *testing.T) {
 	if _, ok := resp["context"]; !ok {
 		t.Errorf("Failed! Expected 'context' key in response, but it was not found.")
 	}
+}
+
+func TestUploaderUploadStream(t *testing.T) {
+	file, err := os.Open("1.jpeg")
+	if err != nil {
+		t.Errorf("Failed!, got err %v", err)
+	}
+
+	params := platform.UploaderUploadXQuery{
+		Name:             "myimage",
+		Path:             "folder",
+		Format:           "jpeg",
+		Access:           "public-read",
+		Overwrite:        true,
+		FilenameOverride: false,
+		Expiry:           3600, // 1 hour
+	}
+
+	result, err := pixelbin.Uploader.Upload(file, params,
+		platform.WithChunkSize(5*1024*1024), // 5MB
+		platform.WithMaxRetries(3),
+		platform.WithConcurrency(2),
+		platform.WithExponentialFactor(2),
+	)
+	if err != nil {
+		t.Errorf("Failed!, got err %v", err)
+	}
+	t.Logf("Success! Result: %v", result)
+}
+
+func TestUploaderUploadBuffer(t *testing.T) {
+	file, err := os.ReadFile("./1.jpeg")
+	if err != nil {
+		t.Errorf("Failed!, got err %v", err)
+	}
+
+	buffer := bytes.NewReader(file)
+
+	params := platform.UploaderUploadXQuery{
+		Name:             "myimage",
+		Path:             "folder",
+		Format:           "jpeg",
+		Access:           "public-read",
+		Overwrite:        true,
+		FilenameOverride: false,
+		Expiry:           3600, // 1 hour
+	}
+
+	result, err := pixelbin.Uploader.Upload(buffer, params,
+		platform.WithChunkSize(5*1024*1024), // 5MB
+		platform.WithMaxRetries(3),
+		platform.WithConcurrency(2),
+		platform.WithExponentialFactor(2),
+	)
+	if err != nil {
+		t.Errorf("Failed!, got err %v", err)
+	}
+	t.Logf("Success! Result: %v", result)
 }
 
 func TestMain(m *testing.M) {
