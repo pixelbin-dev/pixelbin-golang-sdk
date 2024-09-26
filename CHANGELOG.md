@@ -1,3 +1,8 @@
+# 3.1.0
+
+-   Added [upload](./README.md#upload) method.
+-   Removed support for signature from all APIs.
+
 # 3.0.0
 
 -   **Breaking Changes:**

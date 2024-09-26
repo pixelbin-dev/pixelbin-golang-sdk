@@ -4,22 +4,26 @@ import "os"
 
 // folderItem used by Assets
 type folderItem struct {
-	ID   string `json:"_id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Type string `json:"type"`
+	ID    string  `json:"_id"`
+	OrgId float64 `json:"orgId"`
+	Name  string  `json:"name"`
+	Path  string  `json:"path"`
+	Type  string  `json:"type"`
 }
 
 // exploreItem used by Assets
 type exploreItem struct {
-	ID     string     `json:"_id"`
-	Name   string     `json:"name"`
-	Type   string     `json:"type"`
-	Path   string     `json:"path"`
-	FileId string     `json:"fileId"`
-	Format string     `json:"format"`
-	Size   float64    `json:"size"`
-	Access AccessEnum `json:"access"`
+	ID       string     `json:"_id"`
+	OrgId    float64    `json:"orgId"`
+	Name     string     `json:"name"`
+	Type     string     `json:"type"`
+	Path     string     `json:"path"`
+	FileId   string     `json:"fileId"`
+	Format   string     `json:"format"`
+	Size     float64    `json:"size"`
+	Access   AccessEnum `json:"access"`
+	S3Bucket string     `json:"s3Bucket"`
+	S3Key    string     `json:"s3Key"`
 }
 
 // page used by Assets
@@ -41,13 +45,6 @@ type exploreResponse struct {
 type ListFilesResponse struct {
 	Items []exploreItem `json:"items"`
 	Page  page          `json:"page"`
-}
-
-// exploreFolderResponse used by Assets
-type exploreFolderResponse struct {
-	Folder folderItem    `json:"folder"`
-	Items  []exploreItem `json:"items"`
-	Page   page          `json:"page"`
 }
 
 // FileUploadRequest used by Assets
@@ -168,23 +165,6 @@ type Delimiter struct {
 	ParameterSeparator string `json:"parameterSeparator"`
 }
 
-// Credentials used by Assets
-type Credentials struct {
-	ID          string                 `json:"_id"`
-	CreatedAt   string                 `json:"createdAt"`
-	UpdatedAt   string                 `json:"updatedAt"`
-	IsActive    bool                   `json:"isActive"`
-	OrgId       string                 `json:"orgId"`
-	PluginId    string                 `json:"pluginId"`
-	Credentials map[string]interface{} `json:"credentials"`
-	Description interface{}            `json:"description"`
-}
-
-// CredentialsItem used by Assets
-type CredentialsItem struct {
-	PluginId interface{} `json:"pluginId"`
-}
-
 // AddCredentialsRequest used by Assets
 type AddCredentialsRequest struct {
 	Credentials map[string]interface{} `json:"credentials"`
@@ -201,35 +181,10 @@ type AddCredentialsResponse struct {
 	Credentials map[string]interface{} `json:"credentials"`
 }
 
-// DeleteCredentialsResponse used by Assets
-type DeleteCredentialsResponse struct {
-	ID          string                 `json:"_id"`
-	CreatedAt   string                 `json:"createdAt"`
-	UpdatedAt   string                 `json:"updatedAt"`
-	IsActive    bool                   `json:"isActive"`
-	OrgId       string                 `json:"orgId"`
-	PluginId    string                 `json:"pluginId"`
-	Credentials map[string]interface{} `json:"credentials"`
-}
-
 // GetAncestorsResponse used by Assets
 type GetAncestorsResponse struct {
 	Folder    folderItem        `json:"folder"`
 	Ancestors []FoldersResponse `json:"ancestors"`
-}
-
-// GetFilesWithConstraintsItem used by Assets
-type GetFilesWithConstraintsItem struct {
-	Path string `json:"path"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-}
-
-// GetFilesWithConstraintsRequest used by Assets
-type GetFilesWithConstraintsRequest struct {
-	Items    []GetFilesWithConstraintsItem `json:"items"`
-	MaxCount float64                       `json:"maxCount"`
-	MaxSize  float64                       `json:"maxSize"`
 }
 
 // AddPresetRequest used by Assets
@@ -245,6 +200,10 @@ type AddPresetResponse struct {
 	Transformation string                 `json:"transformation"`
 	Params         map[string]interface{} `json:"params"`
 	Archived       bool                   `json:"archived"`
+	OrgId          float64                `json:"orgId"`
+	IsActive       bool                   `json:"isActive"`
+	CreatedAt      string                 `json:"createdAt"`
+	UpdatedAt      string                 `json:"updatedAt"`
 }
 
 // UpdatePresetRequest used by Assets

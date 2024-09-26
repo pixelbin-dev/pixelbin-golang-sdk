@@ -26,18 +26,19 @@ func (c *APIClient) Execute() ([]byte, error) {
 	if c.ContentType != "" && c.ContentType != "multipart/form-data" && c.Body != nil {
 		headers["Content-Type"] = c.ContentType
 	}
-	data := c.Body
-	if c.ContentType == "multipart/form-data" {
-		data = nil
-	}
-	queryString := common.MapToUrlString(c.Query)
 
-	model := common.NewSignatureModel(c.Conf.Domain, c.Method, c.Url, queryString, headers, data, []string{"Authorization", "Content-Type"})
+	// Skipping signature check for URLS starting with `/service/platform/` i.e. platform APIs of all services.
 
-	headersWithSign, err := model.AddSignatureToHeaders(false)
-	headersWithSign["x-ebg-param"] = common.EncodeToBase64(headersWithSign["x-ebg-param"])
-	if err != nil {
-		return nil, err
-	}
-	return common.HttpRequest(strings.ToUpper(c.Method), fmt.Sprintf("%s%s", c.Conf.Domain, c.Url), c.Query, c.Body, headersWithSign)
+	// data := c.Body
+	// if c.ContentType == "multipart/form-data" {
+	// 	data = nil
+	// }
+	// queryString := common.MapToUrlString(c.Query)
+	// model := common.NewSignatureModel(c.Conf.Domain, c.Method, c.Url, queryString, headers, data, []string{"Authorization", "Content-Type"})
+	// headersWithSign, err := model.AddSignatureToHeaders(false)
+	// headersWithSign["x-ebg-param"] = common.EncodeToBase64(headersWithSign["x-ebg-param"])
+
+	host := strings.Replace(strings.Replace(c.Conf.Domain, "http://", "", 1), "https://", "", 1)
+	headers["host"] = host
+	return common.HttpRequest(strings.ToUpper(c.Method), fmt.Sprintf("%s%s", c.Conf.Domain, c.Url), c.Query, c.Body, headers)
 }
