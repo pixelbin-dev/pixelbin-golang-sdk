@@ -1,10 +1,21 @@
 package platform
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/pixelbin-io/pixelbin-go/v3/sdk/common"
+	"io"
+	"math"
+	"mime/multipart"
+	"net/http"
+	"net/url"
 	"os"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/avast/retry-go/v4"
+	"github.com/pixelbin-io/pixelbin-go/v3/sdk/common"
 )
 
 // PixelbinClient holds all the PixelbinConfig object properties
@@ -13,6 +24,8 @@ type PixelbinClient struct {
 	Assets         *Assets
 	Organization   *Organization
 	Transformation *Transformation
+
+	Uploader *Uploader
 }
 
 // NewPixelbinClient returns pixelbin service instances
@@ -22,6 +35,8 @@ func NewPixelbinClient(config *PixelbinConfig) *PixelbinClient {
 		Assets:         NewAssets(config),
 		Organization:   NewOrganization(config),
 		Transformation: NewTransformation(config),
+
+		Uploader: NewUploader(config, NewAssets(config)),
 	}
 }
 
@@ -895,12 +910,18 @@ func (c *Assets) AddPreset(
 }
 
 type GetPresetsXQuery struct {
+	PageNo         float64       `json:"pageNo,omitempty"`
+	PageSize       float64       `json:"pageSize,omitempty"`
+	Name           string        `json:"name,omitempty"`
+	Transformation string        `json:"transformation,omitempty"`
+	Archived       bool          `json:"archived,omitempty"`
+	Sort           []interface{} `json:"sort,omitempty"`
 }
 
 /*
-summary: Get all presets.
+summary: Get presets for an organization
 
-description: Get all presets of an organization.
+description: Retrieve presets for a specific organization.
 
 params: GetPresetsXQuery
 */
@@ -909,6 +930,30 @@ func (c *Assets) GetPresets(
 ) (map[string]interface{}, error) {
 
 	queryParams := make(map[string]string)
+
+	if p.PageNo != 0 {
+		queryParams["pageNo"] = fmt.Sprintf("%v", p.PageNo)
+	}
+
+	if p.PageSize != 0 {
+		queryParams["pageSize"] = fmt.Sprintf("%v", p.PageSize)
+	}
+
+	if p.Name != "" {
+		queryParams["name"] = fmt.Sprintf("%v", p.Name)
+	}
+
+	if p.Transformation != "" {
+		queryParams["transformation"] = fmt.Sprintf("%v", p.Transformation)
+	}
+
+	if p.Archived != false {
+		queryParams["archived"] = fmt.Sprintf("%v", p.Archived)
+	}
+
+	if p.Sort != nil {
+		queryParams["sort"] = fmt.Sprintf("%v", p.Sort)
+	}
 
 	apiClient := &APIClient{
 		Conf:        c.config,
@@ -1491,4 +1536,320 @@ func (c *Transformation) GetTransformationContext(
 	}
 	return resp, nil
 
+}
+
+type Uploader struct {
+	config *PixelbinConfig
+	assets *Assets
+}
+
+func NewUploader(config *PixelbinConfig, assets *Assets) *Uploader {
+	return &Uploader{config: config, assets: assets}
+}
+
+type UploaderUploadXQuery struct {
+	Name             string                 `json:"name,omitempty"`
+	Path             string                 `json:"path,omitempty"`
+	Format           string                 `json:"format,omitempty"`
+	Access           AccessEnum             `json:"access,omitempty"`
+	Tags             []string               `json:"tags,omitempty"`
+	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Overwrite        bool                   `json:"overwrite,omitempty"`
+	FilenameOverride bool                   `json:"filenameOverride,omitempty"`
+	Expiry           float64                `json:"expiry,omitempty"`
+}
+
+type uploaderOption func(*uploaderUploadConfig) error
+
+type uploaderUploadConfig struct {
+	ChunkSize         uint
+	MaxRetries        uint
+	Concurrency       uint
+	ExponentialFactor uint
+}
+
+func WithChunkSize(size uint) uploaderOption {
+	return func(c *uploaderUploadConfig) error {
+		if size <= 0 {
+			return fmt.Errorf("chunk size must be greater than 0")
+		}
+		c.ChunkSize = size
+		return nil
+	}
+}
+
+func WithMaxRetries(retries uint) uploaderOption {
+	return func(c *uploaderUploadConfig) error {
+		c.MaxRetries = retries
+		return nil
+	}
+}
+
+func WithConcurrency(concurrency uint) uploaderOption {
+	return func(c *uploaderUploadConfig) error {
+		if concurrency == 0 {
+			return fmt.Errorf("concurrency must be greater than 0")
+		}
+		c.Concurrency = concurrency
+		return nil
+	}
+}
+
+func WithExponentialFactor(factor uint) uploaderOption {
+	return func(c *uploaderUploadConfig) error {
+		c.ExponentialFactor = factor
+		return nil
+	}
+}
+
+func retryWithExponentialBackoff(baseDelay time.Duration, exponentialFactor float64) func(n uint, err error, config *retry.Config) time.Duration {
+	initialDelay := float64(baseDelay)
+	return func(n uint, err error, config *retry.Config) time.Duration {
+		delay := initialDelay * math.Pow(exponentialFactor, float64(n))
+		return time.Duration(delay)
+	}
+}
+
+func (u *Uploader) Upload(file io.Reader, p UploaderUploadXQuery, opts ...uploaderOption) (map[string]interface{}, error) {
+	config := &uploaderUploadConfig{
+		ChunkSize:         10 * 1024 * 1024, // 10MB default
+		MaxRetries:        2,
+		Concurrency:       3,
+		ExponentialFactor: 2,
+	}
+
+	for _, opt := range opts {
+		if err := opt(config); err != nil {
+			return nil, fmt.Errorf("invalid option: %w", err)
+		}
+	}
+
+	if config.ChunkSize == 0 {
+		return nil, fmt.Errorf("chunk size must be greater than 0")
+	}
+	if config.Concurrency == 0 {
+		return nil, fmt.Errorf("concurrency must be greater than 0")
+	}
+
+	signedUrlV2ApiResponse, err := u.assets.CreateSignedUrlV2(CreateSignedUrlV2XQuery{
+		Name:             p.Name,
+		Path:             p.Path,
+		Format:           p.Format,
+		Access:           p.Access,
+		Tags:             p.Tags,
+		Metadata:         p.Metadata,
+		Overwrite:        p.Overwrite,
+		FilenameOverride: p.FilenameOverride,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating signed URL: %w", err)
+	}
+
+	presignedUrl, ok := signedUrlV2ApiResponse["presignedUrl"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("presignedUrl not found in CreateSignedUrlV2 response")
+	}
+
+	uploadURL, ok := presignedUrl["url"].(string)
+	if !ok {
+		return nil, fmt.Errorf("url not found in presignedUrl")
+	}
+
+	fields, ok := presignedUrl["fields"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("fields not found in presignedUrl")
+	}
+
+	return u.multipartUploadToPixelBin(uploadURL, fields, file, config)
+}
+
+func (u *Uploader) multipartUploadToPixelBin(uploadURL string, fields map[string]interface{}, file io.Reader, config *uploaderUploadConfig) (map[string]interface{}, error) {
+	var wg sync.WaitGroup
+	errors := make(chan error, config.Concurrency)
+	semaphore := make(chan struct{}, config.Concurrency)
+
+	partNumber := 0
+	for {
+
+		chunk := make([]byte, config.ChunkSize)
+		n, err := file.Read(chunk)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		partNumber++
+		wg.Add(1)
+		go func(pn int, data []byte) {
+			defer wg.Done()
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			err := uploadChunk(uploadURL, fields, data[:n], pn, config.MaxRetries, config.ExponentialFactor)
+			if err != nil {
+				select {
+				case errors <- err:
+				default:
+				}
+			}
+		}(partNumber, chunk)
+	}
+
+	wg.Wait()
+	close(errors)
+
+	if err := <-errors; err != nil {
+		return nil, err
+	}
+
+	return completeMultipartUpload(uploadURL, fields, partNumber, config.MaxRetries, config.ExponentialFactor)
+}
+
+func uploadChunk(uploadURL string, fields map[string]interface{}, chunk []byte, partNumber int, maxRetries uint, exponentialFactor uint) error {
+	return retry.Do(
+		func() error {
+			body := &bytes.Buffer{}
+			writer := multipart.NewWriter(body)
+
+			for key, value := range fields {
+				err := writer.WriteField(key, fmt.Sprintf("%v", value))
+				if err != nil {
+					return err
+				}
+			}
+
+			part, err := writer.CreateFormFile("file", "file")
+			if err != nil {
+				return err
+			}
+			_, err = part.Write(chunk)
+			if err != nil {
+				return err
+			}
+
+			err = writer.Close()
+			if err != nil {
+				return err
+			}
+
+			urlObj, err := url.Parse(uploadURL)
+			if err != nil {
+				return err
+			}
+			q := urlObj.Query()
+			q.Set("partNumber", strconv.Itoa(partNumber))
+			urlObj.RawQuery = q.Encode()
+
+			req, err := http.NewRequest("PUT", urlObj.String(), body)
+			if err != nil {
+				return err
+			}
+
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+				var errResp common.FDKError
+				err = json.NewDecoder(resp.Body).Decode(&errResp)
+				if err != nil {
+					return retry.Unrecoverable(err)
+				}
+				return retry.Unrecoverable(&errResp)
+			}
+
+			if resp.StatusCode >= 500 {
+				var errResp common.FDKError
+				err = json.NewDecoder(resp.Body).Decode(&errResp)
+				if err != nil {
+					return err
+				}
+				return &errResp
+			}
+
+			return nil
+		},
+		retry.Attempts(maxRetries+1),
+		retry.DelayType(retryWithExponentialBackoff(time.Second, float64(exponentialFactor))),
+		retry.MaxDelay(time.Second*60),
+		retry.LastErrorOnly(true),
+	)
+}
+
+func completeMultipartUpload(uploadURL string, fields map[string]interface{}, numParts int, maxRetries uint, exponentialFactor uint) (map[string]interface{}, error) {
+	var result map[string]interface{}
+
+	err := retry.Do(
+		func() error {
+			urlObj, err := url.Parse(uploadURL)
+			if err != nil {
+				return err
+			}
+
+			parts := make([]int, numParts)
+			for i := range parts {
+				parts[i] = i + 1
+			}
+
+			payload := map[string]interface{}{
+				"parts": parts,
+			}
+			for k, v := range fields {
+				payload[k] = v
+			}
+
+			jsonPayload, err := json.Marshal(payload)
+			if err != nil {
+				return err
+			}
+
+			resp, err := http.Post(urlObj.String(), "application/json", bytes.NewBuffer(jsonPayload))
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+				var errResp common.FDKError
+				err = json.NewDecoder(resp.Body).Decode(&errResp)
+				if err != nil {
+					return retry.Unrecoverable(err)
+				}
+				return retry.Unrecoverable(&errResp)
+			}
+
+			if resp.StatusCode >= 500 {
+				var errResp common.FDKError
+				err = json.NewDecoder(resp.Body).Decode(&errResp)
+				if err != nil {
+					return err
+				}
+				return &errResp
+			}
+
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		},
+		retry.Attempts(maxRetries+1),
+		retry.DelayType(retryWithExponentialBackoff(time.Second, float64(exponentialFactor))),
+		retry.MaxDelay(time.Second*60),
+		retry.LastErrorOnly(true),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

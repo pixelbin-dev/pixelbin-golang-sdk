@@ -1116,19 +1116,25 @@ Success
 
 ```json
 {
-    "_id": "dummy-uuid",
-    "name": "asset",
-    "path": "dir",
-    "fileId": "dir/asset",
-    "format": "jpeg",
-    "size": 1000,
-    "access": "private",
     "isActive": true,
-    "tags": ["tag1", "tag2"],
-    "metadata": {
-        "key": "value"
-    },
-    "url": "https://domain.com/filename.jpeg"
+    "orgId": "1",
+    "type": "file",
+    "name": "abc.jpeg",
+    "path": "/xyz",
+    "fileId": "xyz/abc.jpeg",
+    "format": "jpeg",
+    "size": 100,
+    "tags": null,
+    "metadata": null,
+    "access": "public-read",
+    "width": null,
+    "height": null,
+    "meta": {},
+    "context": null,
+    "assetType": null,
+    "isOriginal": true,
+    "_id": "35675e3a-5dd8-4b19-a611-1cb64e676c5e",
+    "url": "https://cdn.pixelbin.io/v2/dummy-cloudname/original/xyz/abc.jpeg"
 }
 ```
 
@@ -1338,8 +1344,8 @@ func main() {
 
     // Parameters for FileUpload function
     params := platform.AddPresetXQuery{
-        PresetName: "p1",
-        Transformation: "t.flip()~t.flop()",
+        PresetName: "pre-set_1",
+        Transformation: "t.resize(w:$w,h:$h)~t.extract()",
         Params: map[string]interface{}{"w":{"type":"integer","default":200},"h":{"type":"integer","default":400}},
     }
     result, err := pixelbin.Assets.AddPreset(params)
@@ -1372,8 +1378,9 @@ Success
 
 ```json
 {
-    "presetName": "p1",
-    "transformation": "t.flip()~t.flop()",
+    "orgId": 23,
+    "presetName": "pre-set_1",
+    "transformation": "t.resize(w:$w,h:$h)~t.extract()",
     "params": {
         "w": {
             "type": "integer",
@@ -1384,6 +1391,10 @@ Success
             "default": 400
         }
     },
+    "_id": "821c6816-3cbb-40fd-8629-0098007fc949",
+    "createdAt": "2024-03-21T10:35:47.822Z",
+    "updatedAt": "2024-03-21T10:35:47.822Z",
+    "isActive": true,
     "archived": false
 }
 ```
@@ -1392,7 +1403,7 @@ Success
 
 ### GetPresets
 
-**Summary**: Get all presets.
+**Summary**: Get presets for an organization
 
 ```golang
 import (
@@ -1415,6 +1426,12 @@ func main() {
 
     // Parameters for FileUpload function
     params := platform.GetPresetsXQuery{
+        PageNo: 1,
+        PageSize: 5,
+        Name: "t_0",
+        Transformation: "t.resize(a:0)",
+        Archived: "false",
+        Sort: ["updatedAt"],
     }
     result, err := pixelbin.Assets.GetPresets(params)
 
@@ -1427,11 +1444,20 @@ func main() {
 
 ```
 
-Get all presets of an organization.
+| Argument       | Type     | Required | Description                                     |
+| -------------- | -------- | -------- | ----------------------------------------------- |
+| PageNo         | float64  | no       | Page number                                     |
+| PageSize       | float64  | no       | Page size                                       |
+| Name           | string   | no       | Preset name                                     |
+| Transformation | string   | no       | Transformation applied                          |
+| Archived       | bool     | no       | Indicates whether the preset is archived or not |
+| Sort           | []string | no       | Sort the results by a specific key              |
+
+Retrieve presets for a specific organization.
 
 _Returned Response:_
 
-[AddPresetResponse](#addpresetresponse)
+[GetPresetsResponse](#getpresetsresponse)
 
 Success
 
@@ -1442,26 +1468,34 @@ Success
 {
     "items": [
         {
-            "presetName": "p1",
-            "transformation": "t.flip()~t.flop()",
-            "params": {
-                "w": {
-                    "type": "integer",
-                    "default": 200
-                },
-                "h": {
-                    "type": "integer",
-                    "default": 400
-                }
-            },
-            "archived": true
+            "_id": "f1ae2fc0-a931-4cef-bd1a-3644dad5ae9b",
+            "createdAt": "2024-03-21T10:45:06.623Z",
+            "updatedAt": "2024-03-21T10:45:06.623Z",
+            "isActive": true,
+            "orgId": 23,
+            "presetName": "t_0",
+            "transformation": "t.resize(a:0)",
+            "archived": false,
+            "params": {}
+        },
+        {
+            "_id": "b40a03f1-7fa5-42b1-8cc6-ffe84c9e6629",
+            "createdAt": "2024-03-21T10:45:06.637Z",
+            "updatedAt": "2024-03-21T10:45:06.637Z",
+            "isActive": true,
+            "orgId": 23,
+            "presetName": "t_1",
+            "transformation": "t.resize(a:1)",
+            "archived": false,
+            "params": {}
         }
     ],
     "page": {
         "type": "number",
-        "size": 1,
+        "size": 2,
         "current": 1,
-        "hasNext": false
+        "hasNext": true,
+        "itemTotal": 10
     }
 }
 ```
@@ -1525,8 +1559,9 @@ Success
 
 ```json
 {
-    "presetName": "p1",
-    "transformation": "t.flip()~t.flop()",
+    "orgId": 23,
+    "presetName": "pre-set_1",
+    "transformation": "t.resize(w:$w,h:$h)~t.extract()",
     "params": {
         "w": {
             "type": "integer",
@@ -1537,6 +1572,10 @@ Success
             "default": 400
         }
     },
+    "_id": "821c6816-3cbb-40fd-8629-0098007fc949",
+    "createdAt": "2024-03-21T10:35:47.822Z",
+    "updatedAt": "2024-03-21T10:35:47.822Z",
+    "isActive": true,
     "archived": true
 }
 ```
@@ -1568,7 +1607,7 @@ func main() {
 
     // Parameters for FileUpload function
     params := platform.DeletePresetXQuery{
-        PresetName: "p1",
+        PresetName: "pre-set_1",
     }
     result, err := pixelbin.Assets.DeletePreset(params)
 
@@ -1598,8 +1637,9 @@ Success
 
 ```json
 {
-    "presetName": "p1",
-    "transformation": "t.flip()~t.flop()",
+    "orgId": 23,
+    "presetName": "pre-set_1",
+    "transformation": "t.resize(w:$w,h:$h)~t.extract()",
     "params": {
         "w": {
             "type": "integer",
@@ -1610,7 +1650,11 @@ Success
             "default": 400
         }
     },
-    "archived": true
+    "_id": "821c6816-3cbb-40fd-8629-0098007fc949",
+    "createdAt": "2024-03-21T10:35:47.822Z",
+    "updatedAt": "2024-03-21T10:35:47.822Z",
+    "isActive": true,
+    "archived": false
 }
 ```
 
@@ -1671,8 +1715,9 @@ Success
 
 ```json
 {
+    "orgId": 23,
     "presetName": "p1",
-    "transformation": "t.flip()~t.flop()",
+    "transformation": "t.resize(w:$w,h:$h)~t.extract()",
     "params": {
         "w": {
             "type": "integer",
@@ -1683,7 +1728,11 @@ Success
             "default": 400
         }
     },
-    "archived": true
+    "_id": "821c6816-3cbb-40fd-8629-0098007fc949",
+    "createdAt": "2024-03-21T10:35:47.822Z",
+    "updatedAt": "2024-03-21T10:35:47.822Z",
+    "isActive": true,
+    "archived": false
 }
 ```
 
@@ -2031,25 +2080,29 @@ Success
 
 #### folderItem
 
-| Properties | Type   | Nullable | Description                          |
-| ---------- | ------ | -------- | ------------------------------------ |
-| \_id       | string | yes      | Id of the folder item                |
-| name       | string | yes      | Name of the folder item              |
-| path       | string | yes      | Path of the folder item              |
-| type       | string | yes      | Type of the item. `file` or `folder` |
+| Properties | Type    | Nullable | Description                          |
+| ---------- | ------- | -------- | ------------------------------------ |
+| \_id       | string  | no       | Id of the folder item                |
+| orgId      | float64 | no       | Organization Id                      |
+| name       | string  | no       | Name of the folder item              |
+| path       | string  | no       | Path of the folder item              |
+| type       | string  | no       | Type of the item. `file` or `folder` |
 
 #### exploreItem
 
 | Properties | Type       | Nullable | Description                                                     |
 | ---------- | ---------- | -------- | --------------------------------------------------------------- |
-| \_id       | string     | yes      | id of the exploreItem                                           |
-| name       | string     | yes      | name of the item                                                |
-| type       | string     | yes      | Type of item whether `file` or `folder`                         |
-| path       | string     | yes      | Path of the folder item                                         |
+| \_id       | string     | no       | id of the exploreItem                                           |
+| orgId      | float64    | no       | Organization Id                                                 |
+| name       | string     | no       | name of the item                                                |
+| type       | string     | no       | Type of item whether `file` or `folder`                         |
+| path       | string     | no       | Path of the folder item                                         |
 | fileId     | string     | no       | FileId associated with the item. `path`+`name`                  |
 | format     | string     | no       | Format of the file                                              |
 | size       | float64    | no       | Size of the file in bytes                                       |
 | access     | AccessEnum | no       | Access level of asset, can be either `public-read` or `private` |
+| s3Bucket   | string     | no       | Bucket Name                                                     |
+| s3Key      | string     | no       | s3 path of file                                                 |
 
 #### page
 
@@ -2072,16 +2125,8 @@ Success
 
 | Properties | Type          | Nullable | Description                  |
 | ---------- | ------------- | -------- | ---------------------------- |
-| items      | []exploreItem | yes      | exploreItems in current page |
-| page       | page          | yes      | page details                 |
-
-#### exploreFolderResponse
-
-| Properties | Type          | Nullable | Description                  |
-| ---------- | ------------- | -------- | ---------------------------- |
-| folder     | folderItem    | yes      | requested folder item        |
-| items      | []exploreItem | yes      | exploreItems in current page |
-| page       | page          | yes      | page details                 |
+| items      | []exploreItem | no       | exploreItems in current page |
+| page       | page          | no       | page details                 |
 
 #### FileUploadRequest
 
@@ -2216,25 +2261,6 @@ Success
 | operationSeparator | string | no       | separator to separate operations in the url pattern                      |
 | parameterSeparator | string | no       | separator to separate parameters used with operations in the url pattern |
 
-#### Credentials
-
-| Properties  | Type                   | Nullable | Description                                                 |
-| ----------- | ---------------------- | -------- | ----------------------------------------------------------- |
-| \_id        | string                 | no       | Unique ID for credential                                    |
-| createdAt   | string                 | no       | Credential creation ISO timestamp                           |
-| updatedAt   | string                 | no       | Credential update ISO timestamp                             |
-| isActive    | bool                   | no       | Tells if credential is active or not                        |
-| orgId       | string                 | no       | ID of the organization this credential belongs to           |
-| pluginId    | string                 | no       | Unique identifier for the plugin this credential belongs to |
-| credentials | map[string]interface{} | no       | Credentials object. It is different for each plugin         |
-| description | interface{}            | no       |                                                             |
-
-#### CredentialsItem
-
-| Properties | Type        | Nullable | Description |
-| ---------- | ----------- | -------- | ----------- |
-| pluginId   | interface{} | no       |             |
-
 #### AddCredentialsRequest
 
 | Properties  | Type                   | Nullable | Description                                                 |
@@ -2254,40 +2280,12 @@ Success
 | ----------- | ---------------------- | -------- | ----------- |
 | credentials | map[string]interface{} | no       |             |
 
-#### DeleteCredentialsResponse
-
-| Properties  | Type                   | Nullable | Description                                                 |
-| ----------- | ---------------------- | -------- | ----------------------------------------------------------- |
-| \_id        | string                 | no       | Unique Credential ID                                        |
-| createdAt   | string                 | no       | Credential creation ISO timestamp                           |
-| updatedAt   | string                 | no       | Credential update ISO timestamp                             |
-| isActive    | bool                   | no       | Tells if credential is active or not                        |
-| orgId       | string                 | no       | ID of the organization this credential belongs to           |
-| pluginId    | string                 | no       | Unique identifier for the plugin this credential belongs to |
-| credentials | map[string]interface{} | no       | Credentials object. It is different for each plugin         |
-
 #### GetAncestorsResponse
 
 | Properties | Type              | Nullable | Description |
 | ---------- | ----------------- | -------- | ----------- |
 | folder     | folderItem        | no       |             |
 | ancestors  | []FoldersResponse | no       |             |
-
-#### GetFilesWithConstraintsItem
-
-| Properties | Type   | Nullable | Description |
-| ---------- | ------ | -------- | ----------- |
-| path       | string | no       |             |
-| name       | string | no       |             |
-| type       | string | no       |             |
-
-#### GetFilesWithConstraintsRequest
-
-| Properties | Type                          | Nullable | Description |
-| ---------- | ----------------------------- | -------- | ----------- |
-| items      | []GetFilesWithConstraintsItem | no       |             |
-| maxCount   | float64                       | no       |             |
-| maxSize    | float64                       | no       |             |
 
 #### AddPresetRequest
 
@@ -2301,10 +2299,14 @@ Success
 
 | Properties     | Type                   | Nullable | Description                                    |
 | -------------- | ---------------------- | -------- | ---------------------------------------------- |
-| presetName     | string                 | yes      | Name of the preset                             |
-| transformation | string                 | yes      | A chain of transformations, separated by `~`   |
+| presetName     | string                 | no       | Name of the preset                             |
+| transformation | string                 | no       | A chain of transformations, separated by `~`   |
 | params         | map[string]interface{} | no       | Parameters object for transformation variables |
 | archived       | bool                   | no       | Indicates if the preset has been archived      |
+| orgId          | float64                | no       | Organization Id                                |
+| isActive       | bool                   | no       | Indicates if the preset is active              |
+| createdAt      | string                 | no       | Preset creation ISO timestamp                  |
+| updatedAt      | string                 | no       | Preset update ISO timestamp                    |
 
 #### UpdatePresetRequest
 
@@ -2314,10 +2316,10 @@ Success
 
 #### GetPresetsResponse
 
-| Properties | Type                | Nullable | Description             |
-| ---------- | ------------------- | -------- | ----------------------- |
-| items      | []AddPresetResponse | yes      | Presets in current page |
-| page       | page                | yes      | page details            |
+| Properties | Type                | Nullable | Description  |
+| ---------- | ------------------- | -------- | ------------ |
+| items      | []AddPresetResponse | yes      |              |
+| page       | page                | yes      | page details |
 
 #### TransformationModuleResponse
 
